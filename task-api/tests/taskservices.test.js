@@ -32,6 +32,7 @@ describe('taskService', () => {
 		status: 'todo',
 		priority: 'medium',
 		dueDate: null,
+		assignee: null,
 		completedAt: null,
 		createdAt: expect.any(String)
 
@@ -42,6 +43,19 @@ describe('taskService', () => {
 
 	expect(isIsoString(task.createdAt)).toBe(true);
   });
+
+	test('assignTask() stores a trimmed assignee and returns updated task', () => {
+		const t1 = taskService.create({ title: 'A' });
+		const updated = taskService.assignTask(t1.id, '  Alice  ');
+		expect(updated).toEqual(
+			expect.objectContaining({
+				id: t1.id,
+				assignee: 'Alice',
+			})
+		);
+
+		expect(taskService.findById(t1.id)).toEqual(updated);
+	});
 
   test('getAll() returns a copy of tasks', () => {
 
@@ -197,10 +211,14 @@ describe('taskService', () => {
 
 	expect(page1.length).toBe(10);
 
-	expect(page2.length).toBe(5);
+	expect(page2.length).toBe(10);
 
-	expect(page1.map((t) => t.id)).toEqual(ids.slice(10, 20));
-	expect(page2.map((t) => t.id)).toEqual(ids.slice(20, 25));
+	expect(page1.map((t) => t.id)).toEqual(ids.slice(0, 10));
+	expect(page2.map((t) => t.id)).toEqual(ids.slice(10, 20));
+
+	const page3 = taskService.getPaginated(3, 10);
+	expect(page3.length).toBe(5);
+	expect(page3.map((t) => t.id)).toEqual(ids.slice(20, 25));
   });
 
   test('getStats() returns counts by status and overdue count', () => {

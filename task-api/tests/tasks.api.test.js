@@ -53,6 +53,7 @@ describe('Task API', () => {
         status: 'todo',
         priority: 'high',
         dueDate: null,
+		assignee: null,
         completedAt: null,
         createdAt: expect.any(String)
 
@@ -138,6 +139,13 @@ describe('Task API', () => {
 
 
     expect(res.body.length).toBe(10);
+
+    expect(res.body.map((t) => t.title)).toEqual(Array.from({ length: 10 }, (_, i) => `T${i}`));
+
+    const res2 = await request(app).get('/tasks').query({ page: 2, limit: 10 });
+    expect(res2.status).toBe(200);
+    expect(res2.body.length).toBe(10);
+    expect(res2.body.map((t) => t.title)).toEqual(Array.from({ length: 10 }, (_, i) => `T${i + 10}`));
 
 
 
@@ -278,6 +286,55 @@ describe('Task API', () => {
     expect(res.body).toEqual({ error: 'Task not found' });
 
 
+  });
+
+  test('PATCH /tasks/:id/assign assigns a task to a person and returns updated task', async () => {
+    const created = await request(app).post('/tasks').send({ title: 'To assign' });
+    const id = created.body.id;
+
+    const res = await request(app).patch(`/tasks/${id}/assign`).send({ assignee: 'Alice' });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(
+      expect.objectContaining({
+        id,
+        assignee: 'Alice',
+      })
+    );
+  });
+
+  test('PATCH /tasks/:id/assign returns 400 for empty assignee', async () => {
+    const created = await request(app).post('/tasks').send({ title: 'To assign' });
+    const id = created.body.id;
+
+    const res = await request(app).patch(`/tasks/${id}/assign`).send({ assignee: '   ' });
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual(
+      expect.objectContaining({
+        error: expect.any(String),
+      })
+    );
+  });
+
+  test('PATCH /tasks/:id/assign returns 404 when task does not exist', async () => {
+    const res = await request(app).patch('/tasks/missing/assign').send({ assignee: 'Alice' });
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Task not found' });
+  });
+
+  test('PATCH /tasks/:id/assign allows re-assigning (overwrites assignee)', async () => {
+    const created = await request(app).post('/tasks').send({ title: 'To assign' });
+    const id = created.body.id;
+
+    await request(app).patch(`/tasks/${id}/assign`).send({ assignee: 'Alice' });
+    const res = await request(app).patch(`/tasks/${id}/assign`).send({ assignee: 'Bob' });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(
+      expect.objectContaining({
+        id,
+        assignee: 'Bob',
+      })
+    );
   });
 
   test('GET /tasks/stats returns counts by status and overdue count', async () => {
