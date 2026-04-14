@@ -77,3 +77,13 @@ All files           91.04     81.33     92.3    90.16
   validators.js     69.56     73.52      100    69.56
 ```
 
+## Screenshots
+
+### Test run (`npm test`)
+
+![Jest test run output](./docs/day1-npm-test.png)
+
+### Coverage report (`npm run coverage`)
+
+![Jest coverage output](./docs/day1-npm-run-coverage.png)
+
